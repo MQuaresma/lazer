@@ -1,3 +1,4 @@
+OS = $(shell uname -s)
 CFLAGS_FALCON_AMD64 = -DFALCON_FPNATIVE -DFALCON_AVX2 -DFALCON_FMA
 CFLAGS_WARN = -Wall -Wextra
 CFLAGS_DEFAULT = $(CFLAGS_WARN) -O3 -g -march=native -mtune=native\
@@ -6,7 +7,11 @@ CFLAGS_DEBUG = $(CFLAGS_WARN) -Og -ggdb3
 ADD_CPPFLAGS = -DNDEBUG
 
 CPPFLAGS += $(ADD_CPPFLAGS)
-LIBS = -lm $(HEXL_DIR)/build/hexl/lib64/libhexl.a -lstdc++
+LIBS = -lm $(HEXL_DIR)/build/hexl/lib/libhexl.a -lstdc++
+
+ifeq ($(OS),Darwin)
+CPPFLAGS += -std=c++11
+endif
 
 # honor user CFLAGS
 ifdef CFLAGS
@@ -24,13 +29,23 @@ endif
 # for rejection sampling,
 # must be inked before libgmp
 ifndef libmpfr
+ifeq ($(OS),Darwin)
+libmpfr = $(shell pkg-config --libs mpfr)
+CFLAGS += $(shell pkg-config --cflags mpfr)
+else
 libmpfr = -lmpfr
+endif
 endif
 LIBS += $(libmpfr)
 
 # for low level constant-time ops
 ifndef libgmp
+ifeq ($(OS),Darwin)
+libgmp = $(shell pkg-config --libs gmp)
+CFLAGS += $(shell pkg-config --cflags gmp)
+else
 libgmp = -lgmp
+endif
 endif
 LIBS += $(libgmp)
 
@@ -178,8 +193,8 @@ $(HEXL_DIR): $(HEXL_ZIP)
 	cd $(THIRD_PARTY_DIR) && unzip $(HEXL_SUBDIR).zip
 	cd $(HEXL_DIR) && cmake -S . -B build -DHEXL_BENCHMARK=OFF -DHEXL_TESTING=OFF
 	cd $(HEXL_DIR) && cmake --build build
-#	cd $(HEXL_DIR) && cmake -S . -B build -DHEXL_SHARED_LIB=ON
-#	cd $(HEXL_DIR) && cmake --build build
+# cd $(HEXL_DIR) && cmake -S . -B build -DHEXL_SHARED_LIB=ON
+# cd $(HEXL_DIR) && cmake --build build
 
 
 #### lib labrador
@@ -482,13 +497,13 @@ liblazer.a: src/lazer_static.o src/hexl_static.o $(FALCON_OBJ_STATIC)
 	ar rcs liblazer.a src/lazer_static.o src/hexl_static.o $(FALCON_OBJ_STATIC)
 
 liblazer.so: src/lazer_shared.o  src/hexl_shared.o $(FALCON_OBJ_SHARED)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -I. -shared -o liblazer.so src/lazer_shared.o src/hexl_shared.o $(FALCON_OBJ_SHARED)
+	$(CC) $(CFLAGS) $(LIBS) -I. -shared -o liblazer.so src/lazer_shared.o src/hexl_shared.o $(FALCON_OBJ_SHARED)
 
 src/lazer_static.o: $(LIBSOURCES) lazer.h $(FALCON_DIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -I$(FALCON_DIR) -I. -c -o src/lazer_static.o src/lazer.c
+	$(CC) $(CFLAGS) -I$(FALCON_DIR) -I. -c -o src/lazer_static.o src/lazer.c
 
 src/lazer_shared.o: $(LIBSOURCES) lazer.h $(FALCON_DIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -I$(FALCON_DIR) -I. -c -fPIC -o src/lazer_shared.o src/lazer.c
+	$(CC) $(CFLAGS) -I$(FALCON_DIR) -I. -c -fPIC -o src/lazer_shared.o src/lazer.c
 
 src/hexl_static.o: src/hexl.h $(HEXL_DIR)
 	$(CXX) $(CPPFLAGS) $(CFLAGS) -Isrc -I$(HEXL_DIR)/hexl/include -c -o src/hexl_static.o src/hexl.cpp
