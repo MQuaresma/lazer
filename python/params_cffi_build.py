@@ -44,9 +44,9 @@ includedirs = lazerdir
 libdirs = lazerdir
 
 if sys.platform == 'darwin':
-  includedirs.append(subprocess.run(['pkg-config','-cflags','gmp'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-I','')[:-1])
+  includedirs.append(subprocess.run(['pkg-config','--cflags','gmp'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-I','')[:-1])
   libdirs.append(subprocess.run(['pkg-config','--libs-only-L','gmp'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-L','')[:-1])
-  includedirs.append(subprocess.run(['pkg-config','-cflags','mpfr'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-I','')[:-1])
+  includedirs.append(subprocess.run(['pkg-config','--cflags','mpfr'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-I','')[:-1])
   libdirs.append(subprocess.run(['pkg-config','--libs-only-L','mpfr'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-L','')[:-1])
 
 
