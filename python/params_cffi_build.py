@@ -4,6 +4,7 @@ import cffi
 import sys
 import os
 import re
+import subprocess
 
 assert len(sys.argv) <= 3
 file = sys.argv[1]
@@ -39,10 +40,20 @@ csource += f"""
 }}
 """
 
+includedirs = lazerdir
+libdirs = lazerdir
+
+if sys.platform == 'darwin':
+  includedirs.append(subprocess.run(['pkg-config','-cflags','gmp'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-I','')[:-1])
+  libdirs.append(subprocess.run(['pkg-config','--libs-only-L','gmp'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-L','')[:-1])
+  includedirs.append(subprocess.run(['pkg-config','-cflags','mpfr'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-I','')[:-1])
+  libdirs.append(subprocess.run(['pkg-config','--libs-only-L','mpfr'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-L','')[:-1])
+
+
 ffibuilder = cffi.FFI()
 ffibuilder.cdef(cdefs)
-ffibuilder.set_source(f"_{name}_cffi", csource, include_dirs=lazerdir,
-                      library_dirs=lazerdir, runtime_library_dirs=lazerdir)
+ffibuilder.set_source(f"_{name}_cffi", csource, include_dirs=includedirs,
+                      library_dirs=libdirs, runtime_library_dirs=lazerdir)
 
 if __name__ == "__main__":
     ffibuilder.compile(verbose=True)

@@ -3,6 +3,7 @@
 import cffi
 import sys
 import os
+import subprocess
 
 assert len(sys.argv) <= 2
 prefix = os.path.abspath('..')
@@ -384,7 +385,6 @@ static const modulus_srcptr moduli_d128[];
 
 """
 
-
 includedirs = [prefix]
 # XXX get hexl path from build system
 libdirs = [prefix, f"{prefix}/third_party/hexl-development/build/hexl/lib/", f"{prefix}/third_party/hexl-development/build/hexl/lib64/"]
@@ -418,6 +418,11 @@ if os.path.isfile('../liblabrador48.so'):
    source += source_labrador.replace("LOGQ","48")
    libs += ['labrador48']
 
+if sys.platform == 'darwin':
+  includedirs.append(subprocess.run(['pkg-config','-cflags','gmp'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-I','')[:-1])
+  libdirs.append(subprocess.run(['pkg-config','--libs-only-L','gmp'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-L','')[:-1])
+  includedirs.append(subprocess.run(['pkg-config','-cflags','mpfr'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-I','')[:-1])
+  libdirs.append(subprocess.run(['pkg-config','--libs-only-L','mpfr'], stdout=subprocess.PIPE).stdout.decode('ascii').replace('-L','')[:-1])
 
 ffibuilder = cffi.FFI()
 ffibuilder.cdef(cdefs)
